@@ -196,7 +196,8 @@ vector<slide_t> solve(int n, int k, vector<photo_t> const & photos, Generator & 
         if (i == 0 or i == slides.size() - 1) continue;
         int j;
         {
-            int tag = choose_tag(slides[i], photos, gen);
+            int i1 = (bernoulli_distribution(0.5)(gen) ? i - 1 : i + 1);
+            int tag = choose_tag(slides[i1], photos, gen);
             j = lookup_slide[choose(lookup_photo[tag], gen)];
         }
         if (j == 0 or j == slides.size() - 1) continue;
