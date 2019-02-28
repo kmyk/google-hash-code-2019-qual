@@ -55,6 +55,25 @@ vector<int> get_tags(slide_t const & slide, vector<photo_t> const & photos) {
     }
 }
 
+template <class T, class Generator>
+T choose(vector<T> const & xs, Generator & gen) {
+    assert (not xs.empty());
+    return xs[uniform_int_distribution<int>(0, xs.size() - 1)(gen)];
+}
+
+template <class Generator>
+int choose_tag(slide_t const & slide, vector<photo_t> const & photos, Generator & gen) {
+    if (slide.second == -1) {
+        return choose(photos[slide.first].tags, gen);
+    } else {
+        auto const & tags1 = photos[slide.first].tags;
+        auto const & tags2 = photos[slide.second].tags;
+        assert (tags1.size() + tags2.size());
+        int i = uniform_int_distribution<int>(0, tags1.size() + tags2.size() - 1)(gen);
+        return (i < tags1.size() ? tags1[i] : tags2[i - tags1.size()]);
+    }
+}
+
 ll get_score_delta(slide_t const & a, slide_t const & b, vector<photo_t> const & photos) {
     auto a_tags = get_tags(a, photos);
     auto b_tags = get_tags(b, photos);
@@ -177,9 +196,8 @@ vector<slide_t> solve(int n, int k, vector<photo_t> const & photos, Generator & 
         if (i == 0 or i == slides.size() - 1) continue;
         int j;
         {
-            auto tags = get_tags(slides[i], photos);
-            int tag = tags[uniform_int_distribution<int>(0, (int)tags.size() - 1)(gen)];
-            j = lookup_slide[lookup_photo[tag][uniform_int_distribution<int>(0, (int)lookup_photo[tag].size() - 1)(gen)]];
+            int tag = choose_tag(slides[i], photos, gen);
+            j = lookup_slide[choose(lookup_photo[tag], gen)];
         }
         if (j == 0 or j == slides.size() - 1) continue;
         if (i + 1 == j or i == j or i == j + 1) continue;
@@ -199,11 +217,11 @@ vector<slide_t> solve(int n, int k, vector<photo_t> const & photos, Generator & 
         delta += get_score_delta(slides[j - 1], slides[j], photos);
         delta += get_score_delta(slides[j], slides[j + 1], photos);
 
-        // constexpr double boltzmann = 3;
-        // if (delta >= 0 or bernoulli_distribution(exp(boltzmann * delta) * temperature)(gen)) {
-        if (delta >= 0) {
+        constexpr double boltzmann = 3;
+        if (delta >= 0 or bernoulli_distribution(exp(boltzmann * delta) * temperature)(gen)) {
+        // if (delta >= 0) {
             if (delta < 0) {
-                // cerr << "[*] iteration = " << iteration << ": delta = " << delta << ": p = " << exp(boltzmann * delta) * temperature << endl;
+                cerr << "[*] iteration = " << iteration << ": delta = " << delta << ": p = " << exp(boltzmann * delta) * temperature << endl;
             }
             score += delta;
             if (highscore < score) {
