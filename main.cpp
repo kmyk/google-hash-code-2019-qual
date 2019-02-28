@@ -88,7 +88,14 @@ ll compute_score(vector<slide_t> const & slides, vector<photo_t> const & photos)
 }
 
 template <class Generator>
-vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
+vector<slide_t> solve(int n, int k, vector<photo_t> const & photos, Generator & gen) {
+    vector<vector<int> > lookup_photo(k);
+    REP (i, n) {
+        for (int tag : photos[i].tags) {
+            lookup_photo[tag].push_back(i);
+        }
+    }
+
     vector<slide_t> slides;
 
     if (getenv("RESUME")) {
@@ -129,12 +136,31 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
 
     int s = slides.size();
     ll score = compute_score(slides, photos);
+    vector<int> lookup_slide(n);
+    auto update_lookup_slide = [&](int i) {
+        lookup_slide[slides[i].first] = i;
+        if (slides[i].second != -1) {
+            lookup_slide[slides[i].second] = i;
+        }
+    };
+    REP (i, s) {
+        update_lookup_slide(i);
+    }
+    auto swap_slide = [&](int i, int j) {
+        if (slides[i].second != -1 and slides[j].second != -1) {
+            swap(slides[i].first, slides[j].first);
+        } else {
+            swap(slides[i], slides[j]);
+        }
+        update_lookup_slide(i);
+        update_lookup_slide(j);
+    };
 
     vector<slide_t> result = slides;
     ll highscore = score;
     cerr << "[*] highscore = " << highscore << endl;
 
-    constexpr int TIME_LIMIT = 1000;  // msec
+    constexpr int TIME_LIMIT = 3000;  // msec
     chrono::high_resolution_clock::time_point clock_begin = chrono::high_resolution_clock::now();
     double temperature = 1;
     for (unsigned iteration = 0; ; ++ iteration) {
@@ -148,11 +174,15 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
         }
 
         int i = uniform_int_distribution<int>(0, s - 1)(gen);
-        int j = uniform_int_distribution<int>(0, s - 1)(gen);
-        if (i > j) swap(i, j);
-        if (i == 0) continue;
-        if (j == n - 1) continue;
-        if (i + 1 == j) continue;
+        if (i == 0 or i == slides.size() - 1) continue;
+        int j;
+        {
+            auto tags = get_tags(slides[i], photos);
+            int tag = tags[uniform_int_distribution<int>(0, (int)tags.size() - 1)(gen)];
+            j = lookup_slide[lookup_photo[tag][uniform_int_distribution<int>(0, (int)lookup_photo[tag].size() - 1)(gen)]];
+        }
+        if (j == 0 or j == slides.size() - 1) continue;
+        if (i + 1 == j or i == j or i == j + 1) continue;
         if (slides[i].second != -1 and slides[j].second != -1) {
             if (bernoulli_distribution(0.5)(gen)) {
                 swap(slides[i].first, slides[i].second);
@@ -163,11 +193,7 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
         delta -= get_score_delta(slides[i], slides[i + 1], photos);
         delta -= get_score_delta(slides[j - 1], slides[j], photos);
         delta -= get_score_delta(slides[j], slides[j + 1], photos);
-        if (slides[i].second != -1 and slides[j].second != -1) {
-            swap(slides[i].first, slides[j].first);
-        } else {
-            swap(slides[i], slides[j]);
-        }
+        swap_slide(i, j);
         delta += get_score_delta(slides[i - 1], slides[i], photos);
         delta += get_score_delta(slides[i], slides[i + 1], photos);
         delta += get_score_delta(slides[j - 1], slides[j], photos);
@@ -186,11 +212,7 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
                 cerr << "[*] iteration = " << iteration << ": highscore = " << highscore << endl;
             }
         } else {
-            if (slides[i].second != -1 and slides[j].second != -1) {
-                swap(slides[i].first, slides[j].first);
-            } else {
-                swap(slides[i], slides[j]);
-            }
+            swap_slide(i, j);
         }
     }
 
@@ -220,7 +242,7 @@ int main() {
 
     // solve
     xor_shift_128 gen;
-    vector<slide_t> slides = solve(n, photos, gen);
+    vector<slide_t> slides = solve(n, tags.size(), photos, gen);
 
     // output
     vector<bool> used(n);
