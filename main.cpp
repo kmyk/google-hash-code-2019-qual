@@ -90,7 +90,25 @@ ll compute_score(vector<slide_t> const & slides, vector<photo_t> const & photos)
 template <class Generator>
 vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
     vector<slide_t> slides;
-    {  // make an initial state
+
+    if (getenv("RESUME")) {
+        ifstream ifs(getenv("RESUME"));
+        int s; ifs >> s;
+        slides.resize(s);
+        while (s --) {
+            int i; ifs >> i;
+            char c; ifs.get(c);
+            if (c == '\n') {
+                slides.emplace_back(i, -1);
+            } else if (c == ' ') {
+                int j; ifs >> j;
+                slides.emplace_back(i, j);
+            } else {
+                assert (false);
+            }
+        }
+
+    } else {  // make an initial state
         int vr = -1;
         REP (i, n) {
             if (photos[i].is_vertical) {
@@ -106,7 +124,8 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
         }
         assert (vr == -1);
     }
-    int k = slides.size();
+
+    int s = slides.size();
     ll score = compute_score(slides, photos);
 
     vector<slide_t> result = slides;
@@ -126,8 +145,8 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
             }
         }
 
-        int i = uniform_int_distribution<int>(0, k - 1)(gen);
-        int j = uniform_int_distribution<int>(0, k - 1)(gen);
+        int i = uniform_int_distribution<int>(0, s - 1)(gen);
+        int j = uniform_int_distribution<int>(0, s - 1)(gen);
         if (i > j) swap(i, j);
         if (i == 0) continue;
         if (j == n - 1) continue;
@@ -143,11 +162,11 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
         delta += get_score_delta(slides[j - 1], slides[j], photos);
         delta += get_score_delta(slides[j], slides[j + 1], photos);
 
-        constexpr double boltzmann = 1;
-        // if (delta >= 0 or bernoulli_distribution(exp(boltzmann * delta / temperature))(gen)) {
+        // constexpr double boltzmann = 2;
+        // if (delta >= 0 or bernoulli_distribution(exp(boltzmann * delta) * temperature)(gen)) {
         if (delta >= 0) {
             if (delta < 0) {
-                // cerr << "[*] iteration = " << iteration << ": delta = " << delta << ": p = " << exp(boltzmann * delta / temperature) << endl;
+                // cerr << "[*] iteration = " << iteration << ": delta = " << delta << ": p = " << exp(boltzmann * delta) * temperature << endl;
             }
             score += delta;
             if (highscore < score) {
