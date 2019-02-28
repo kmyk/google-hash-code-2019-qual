@@ -94,15 +94,17 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
     if (getenv("RESUME")) {
         ifstream ifs(getenv("RESUME"));
         int s; ifs >> s;
-        slides.resize(s);
         while (s --) {
             int i; ifs >> i;
             char c; ifs.get(c);
             if (c == '\n') {
                 slides.emplace_back(i, -1);
+                assert (not photos[i].is_vertical);
             } else if (c == ' ') {
                 int j; ifs >> j;
                 slides.emplace_back(i, j);
+                assert (photos[i].is_vertical);
+                assert (photos[j].is_vertical);
             } else {
                 assert (false);
             }
@@ -132,7 +134,7 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
     ll highscore = score;
     cerr << "[*] highscore = " << highscore << endl;
 
-    constexpr int TIME_LIMIT = 30000;  // msec
+    constexpr int TIME_LIMIT = 1000;  // msec
     chrono::high_resolution_clock::time_point clock_begin = chrono::high_resolution_clock::now();
     double temperature = 1;
     for (unsigned iteration = 0; ; ++ iteration) {
@@ -151,22 +153,31 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
         if (i == 0) continue;
         if (j == n - 1) continue;
         if (i + 1 == j) continue;
+        if (slides[i].second != -1 and slides[j].second != -1) {
+            if (bernoulli_distribution(0.5)(gen)) {
+                swap(slides[i].first, slides[i].second);
+            }
+        }
         ll delta = 0;
         delta -= get_score_delta(slides[i - 1], slides[i], photos);
         delta -= get_score_delta(slides[i], slides[i + 1], photos);
         delta -= get_score_delta(slides[j - 1], slides[j], photos);
         delta -= get_score_delta(slides[j], slides[j + 1], photos);
-        swap(slides[i], slides[j]);
+       // if (slides[i].second != -1 and slides[j].second != -1) {
+       //     swap(slides[i].first, slides[j].first);
+       // } else {
+            swap(slides[i], slides[j]);
+        //}
         delta += get_score_delta(slides[i - 1], slides[i], photos);
         delta += get_score_delta(slides[i], slides[i + 1], photos);
         delta += get_score_delta(slides[j - 1], slides[j], photos);
         delta += get_score_delta(slides[j], slides[j + 1], photos);
 
-        // constexpr double boltzmann = 2;
-        // if (delta >= 0 or bernoulli_distribution(exp(boltzmann * delta) * temperature)(gen)) {
-        if (delta >= 0) {
+        constexpr double boltzmann = 3;
+        if (delta >= 0 or bernoulli_distribution(exp(boltzmann * delta) * temperature)(gen)) {
+        // if (delta >= 0) {
             if (delta < 0) {
-                // cerr << "[*] iteration = " << iteration << ": delta = " << delta << ": p = " << exp(boltzmann * delta) * temperature << endl;
+                cerr << "[*] iteration = " << iteration << ": delta = " << delta << ": p = " << exp(boltzmann * delta) * temperature << endl;
             }
             score += delta;
             if (highscore < score) {
@@ -175,7 +186,11 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
                 cerr << "[*] iteration = " << iteration << ": highscore = " << highscore << endl;
             }
         } else {
-            swap(slides[i], slides[j]);
+         //   if (slides[i].second != -1 and slides[j].second != -1) {
+         //       swap(slides[i].first, slides[j].first);
+         //   } else {
+                swap(slides[i], slides[j]);
+            //}
         }
     }
 
