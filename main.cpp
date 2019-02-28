@@ -201,26 +201,17 @@ vector<slide_t> solve(int n, int k, vector<photo_t> const & photos, Generator & 
             j = lookup_slide[choose(lookup_photo[tag], gen)];
         }
         if (j == 0 or j == slides.size() - 1) continue;
-        if (i + 1 == j or i == j or i == j + 1) continue;
-        if (slides[i].second != -1 and slides[j].second != -1) {
-            if (bernoulli_distribution(0.5)(gen)) {
-                swap(slides[i].first, slides[i].second);
-            }
-        }
+        if (i > j) swap(i, j);
+
         ll delta = 0;
         delta -= get_score_delta(slides[i - 1], slides[i], photos);
-        delta -= get_score_delta(slides[i], slides[i + 1], photos);
-        delta -= get_score_delta(slides[j - 1], slides[j], photos);
         delta -= get_score_delta(slides[j], slides[j + 1], photos);
-        swap_slide(i, j);
-        delta += get_score_delta(slides[i - 1], slides[i], photos);
-        delta += get_score_delta(slides[i], slides[i + 1], photos);
-        delta += get_score_delta(slides[j - 1], slides[j], photos);
-        delta += get_score_delta(slides[j], slides[j + 1], photos);
+        delta += get_score_delta(slides[i - 1], slides[j], photos);
+        delta += get_score_delta(slides[i], slides[j + 1], photos);
 
         constexpr double boltzmann = 3;
         if (delta >= 0 or bernoulli_distribution(exp(boltzmann * delta) * temperature)(gen)) {
-        // if (delta >= 0) {
+            reverse(slides.begin() + i, slides.begin() + j + 1);
             if (delta < 0) {
                 cerr << "[*] iteration = " << iteration << ": delta = " << delta << ": p = " << exp(boltzmann * delta) * temperature << endl;
             }
@@ -231,7 +222,6 @@ vector<slide_t> solve(int n, int k, vector<photo_t> const & photos, Generator & 
                 cerr << "[*] iteration = " << iteration << ": highscore = " << highscore << endl;
             }
         } else {
-            swap_slide(i, j);
         }
     }
 
