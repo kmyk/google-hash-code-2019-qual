@@ -163,21 +163,21 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
         delta -= get_score_delta(slides[i], slides[i + 1], photos);
         delta -= get_score_delta(slides[j - 1], slides[j], photos);
         delta -= get_score_delta(slides[j], slides[j + 1], photos);
-       // if (slides[i].second != -1 and slides[j].second != -1) {
-       //     swap(slides[i].first, slides[j].first);
-       // } else {
+        if (slides[i].second != -1 and slides[j].second != -1) {
+            swap(slides[i].first, slides[j].first);
+        } else {
             swap(slides[i], slides[j]);
-        //}
+        }
         delta += get_score_delta(slides[i - 1], slides[i], photos);
         delta += get_score_delta(slides[i], slides[i + 1], photos);
         delta += get_score_delta(slides[j - 1], slides[j], photos);
         delta += get_score_delta(slides[j], slides[j + 1], photos);
 
-        constexpr double boltzmann = 3;
-        if (delta >= 0 or bernoulli_distribution(exp(boltzmann * delta) * temperature)(gen)) {
-        // if (delta >= 0) {
+        // constexpr double boltzmann = 3;
+        // if (delta >= 0 or bernoulli_distribution(exp(boltzmann * delta) * temperature)(gen)) {
+        if (delta >= 0) {
             if (delta < 0) {
-                cerr << "[*] iteration = " << iteration << ": delta = " << delta << ": p = " << exp(boltzmann * delta) * temperature << endl;
+                // cerr << "[*] iteration = " << iteration << ": delta = " << delta << ": p = " << exp(boltzmann * delta) * temperature << endl;
             }
             score += delta;
             if (highscore < score) {
@@ -186,11 +186,11 @@ vector<slide_t> solve(int n, vector<photo_t> const & photos, Generator & gen) {
                 cerr << "[*] iteration = " << iteration << ": highscore = " << highscore << endl;
             }
         } else {
-         //   if (slides[i].second != -1 and slides[j].second != -1) {
-         //       swap(slides[i].first, slides[j].first);
-         //   } else {
+            if (slides[i].second != -1 and slides[j].second != -1) {
+                swap(slides[i].first, slides[j].first);
+            } else {
                 swap(slides[i], slides[j]);
-            //}
+            }
         }
     }
 
